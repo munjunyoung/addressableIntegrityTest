@@ -21,15 +21,27 @@ public class AddressableManager : MonoBehaviour
     public Text viewText;
 
     public Button donwLoadButton;
-    public Button clearBundleButton;
     public Button integrityButton;
+    public Button loadButton;
+    public Button releaseButton;
+    public Button clearBundleButton;
+
+    public Image loadedImage;
+
 
 
     private void Awake()
     {
         donwLoadButton.onClick.RemoveAllListeners();
         donwLoadButton.onClick.AddListener(() => OnStartDownLoadBundle());
+        clearBundleButton.onClick.RemoveAllListeners();
         clearBundleButton.onClick.AddListener(() => OnClearAllCache());
+
+        loadButton.onClick.RemoveAllListeners();
+        loadButton.onClick.AddListener(() => OnLoadImage());
+
+        releaseButton.onClick.RemoveAllListeners();
+        releaseButton.onClick.AddListener(() => OnReleaseImage());
     }
     /// <summary>
     /// NOTE : 라벨별 다운로드 시작
@@ -83,6 +95,7 @@ public class AddressableManager : MonoBehaviour
     /// <param name="clearCatalog"></param>
     public void OnClearAllCache(bool clearCatalog = false)
     {
+        Debug.Log("Click Clear Cache");
         AssetBundle.UnloadAllAssetBundles(true);
 
         if (Caching.ClearCache())
@@ -134,8 +147,25 @@ public class AddressableManager : MonoBehaviour
                 }
             }
         }
-
         //모든 번들 해쉬셋 
     }
 
+    public void OnLoadImage()
+    {
+
+        Debug.Log("Start Load");
+        AsyncOperationHandle handle = default;
+
+        handle = Addressables.LoadAssetAsync<Sprite>("Assets/Resources_moved/Test/100001.png");
+
+        Sprite output = handle.WaitForCompletion() as Sprite;
+        loadedImage.sprite = output;
+        loadedImage.SetNativeSize();
+        
+    }
+
+    public void OnReleaseImage()
+    {
+        AssetBundle.UnloadAllAssetBundles(true);
+    }
 }
