@@ -12,6 +12,7 @@ using UnityEngine.UI;
 using UnityEngine.AddressableAssets.ResourceLocators;
 using UnityEngine.ResourceManagement.ResourceProviders;
 using System.Linq;
+using Unity.VisualScripting;
 
 public class AddressableManager : MonoBehaviour
 {
@@ -19,6 +20,8 @@ public class AddressableManager : MonoBehaviour
     private Coroutine _downLoadAsyncCor = null;
 
     public Text viewText;
+
+    public Button donwSizeButton;
 
     public Button donwLoadButton;
     public Button integrityButton;
@@ -29,9 +32,14 @@ public class AddressableManager : MonoBehaviour
     public Image loadedImage;
 
 
+    AsyncOperationHandle handle;
+
 
     private void Awake()
     {
+        donwSizeButton.onClick.RemoveAllListeners();
+        donwSizeButton.onClick.AddListener(() => OnCheckDownLoadSizeBundle());
+
         donwLoadButton.onClick.RemoveAllListeners();
         donwLoadButton.onClick.AddListener(() => OnStartDownLoadBundle());
         clearBundleButton.onClick.RemoveAllListeners();
@@ -43,7 +51,46 @@ public class AddressableManager : MonoBehaviour
         releaseButton.onClick.RemoveAllListeners();
         releaseButton.onClick.AddListener(() => OnReleaseImage());
     }
+
     /// <summary>
+    /// NOTE : 라벨별 다운로드 시작
+    /// </summary>
+    /// <param name="key"></param>
+    public void OnCheckDownLoadSizeBundle()
+    {
+        if (_downLoadAsyncCor != null)
+        {
+            StopCoroutine(_downLoadAsyncCor);
+            _downLoadAsyncCor = null;
+        }
+        Debug.Log("Check DownLoad SIZE");
+        _downLoadAsyncCor = StartCoroutine(DownloadSizeProcess(downLoadLabels));
+    }
+    IEnumerator DownloadSizeProcess(string[] labels)
+    {
+        int count = 0;
+        long size = 0;
+
+        while (count < labels.Length)
+        {
+            var label = labels[count];
+            var downHandle = Addressables.GetDownloadSizeAsync(label.ToString());
+           
+            yield return downHandle;
+            if (downHandle.Status == AsyncOperationStatus.Succeeded)
+            {
+                if (downHandle.Result > 0)
+                {
+                   size += downHandle.Result;
+                }
+            }
+            Addressables.Release(downHandle);
+            count++;
+        }
+        viewText.text = size.ToString();
+    }
+
+    /// <summary>ccccccc
     /// NOTE : 라벨별 다운로드 시작
     /// </summary>
     /// <param name="key"></param>
@@ -57,6 +104,7 @@ public class AddressableManager : MonoBehaviour
         _downLoadAsyncCor = StartCoroutine(DownloadProcess(downLoadLabels));
     }
 
+
     IEnumerator DownloadProcess(string[] labels)
     {
         int count = 0;
@@ -64,7 +112,6 @@ public class AddressableManager : MonoBehaviour
         {
             bool isSucced = false;
             var label = labels[count];
-
             var downHandle = Addressables.DownloadDependenciesAsync(label.ToString());
             downHandle.Completed += (AsyncOperationHandle Handle) =>
             {
@@ -81,13 +128,13 @@ public class AddressableManager : MonoBehaviour
                 yield return new WaitForFixedUpdate();
             }
 
+
             yield return isSucced;
             Addressables.Release(downHandle);
             count++;
         }
         viewText.text = 100 + "%";
     }
-
 
     /// <summary>
     /// NOTE : 모든 캐시 클리어, 카탈로그도 삭제
@@ -154,7 +201,6 @@ public class AddressableManager : MonoBehaviour
     {
 
         Debug.Log("Start Load");
-        AsyncOperationHandle handle = default;
 
         handle = Addressables.LoadAssetAsync<Sprite>("Assets/Resources_moved/Test/100001.png");
 
@@ -166,6 +212,8 @@ public class AddressableManager : MonoBehaviour
 
     public void OnReleaseImage()
     {
-        AssetBundle.UnloadAllAssetBundles(true);
+        Debug.Log("Release");
+        Addressables.Release(handle);
+        //AssetBundle.UnloadAllAssetBundles(true);
     }
 }
